@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>KafkaMulti 2-Day Trial</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, Segoe UI, sans-serif; background: #08111f; color: #f5f8fc; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; }
+    main { width: min(100%, 520px); padding: 28px; border: 1px solid #263750; border-radius: 20px; background: #111d2f; box-shadow: 0 20px 70px #02071188; }
+    h1 { margin: 0 0 8px; font-size: 25px; }
+    p { color: #9caec2; line-height: 1.5; }
+    label { display: block; margin: 18px 0 7px; color: #d8e1ec; font-size: 14px; }
+    input, select { width: 100%; padding: 12px 13px; border: 1px solid #344862; border-radius: 10px; background: #08111f; color: #fff; font: inherit; }
+    button { padding: 12px 16px; border: 0; border-radius: 10px; background: #79e2c2; color: #08111f; font: inherit; font-weight: 700; cursor: pointer; }
+    button:disabled { cursor: wait; opacity: .65; }
+    #issue { width: 100%; margin-top: 22px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    #status { min-height: 24px; margin-top: 15px; color: #ffc66d; }
+    #result { display: none; margin-top: 16px; padding: 16px; border-radius: 12px; background: #08111f; }
+    #licenseKey { display: block; margin: 10px 0; padding: 12px; border: 1px solid #344862; border-radius: 9px; color: #79e2c2; font: 600 16px ui-monospace, monospace; overflow-wrap: anywhere; user-select: all; }
+    .notice { margin: 12px 0 0; font-size: 13px; }
+    @media (max-width: 430px) { main { padding: 21px; } .row { grid-template-columns: 1fr; gap: 0; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Try KafkaMulti free</h1>
+    <p>Generate a unique 2-day trial key, then enter it in the app. The trial is limited to one device and one key per network every 30 days.</p>
+
+    <form id="issueForm">
+      <button id="issue" type="submit">Generate 2-day trial key</button>
+    </form>
+
+    <div id="status" role="status" aria-live="polite"></div>
+    <section id="result" aria-live="polite">
+      <strong>Trial key created. Copy it now; it cannot be shown again.</strong>
+      <code id="licenseKey"></code>
+      <button id="copy" type="button">Copy key</button>
+      <p id="expiry" class="notice"></p>
+    </section>
+    <p class="notice">Supabase stores only a hash of the key. The trial expires automatically after 2 days. If you already claimed a trial, contact support for help.</p>
+  </main>
+  <script>
+    const form = document.querySelector('#issueForm');
+    const issueButton = document.querySelector('#issue');
+    const status = document.querySelector('#status');
+    const result = document.querySelector('#result');
+    const keyOutput = document.querySelector('#licenseKey');
+    const expiryOutput = document.querySelector('#expiry');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      result.style.display = 'none';
+      status.textContent = 'Creating your trial key...';
+      issueButton.disabled = true;
+      try {
+        const response = await fetch('/api/issue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+        keyOutput.textContent = data.license_key;
+        expiryOutput.textContent = data.expires_at ? `Expires: ${new Date(data.expires_at).toLocaleString()}` : 'Never expires';
+        result.style.display = 'block';
+        status.textContent = 'Trial created. Enter this key in KafkaMulti.';
+      } catch (error) {
+        status.textContent = error.message || 'Could not create the key. Try again.';
+      } finally {
+        issueButton.disabled = false;
+      }
+    });
+
+    document.querySelector('#copy').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(keyOutput.textContent);
+        status.textContent = 'Key copied. Send it to the customer privately.';
+      } catch {
+        status.textContent = 'Select the key and copy it manually.';
+      }
+    });
+  </script>
+</body>
+</html>
